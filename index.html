@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小组角色自测工具</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f0f4ff;
+        }
+        .question-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .option {
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .option:hover {
+            background: #f8f9ff;
+            transform: translateX(5px);
+        }
+        #result {
+            display: none;
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+        }
+        button {
+            background: #4a90e2;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        .radar-container {
+            width: 80%;
+            margin: 20px auto;
+        }
+    </style>
+</head>
+<body>
+    <div id="quiz"></div>
+    <button onclick="showResult()">提交测试</button>
+    <div id="result"></div>
+
+    <script>
+        // 题目数据
+        const questions = [
+            {
+                text: "当小组任务出现意见分歧时，你会如何应对？",
+                options: [
+                    { text: "主动提出解决方案，协调大家达成一致", type: "leader" },
+                    { text: "听从多数人的决定，避免冲突", type: "executor" },
+                    { text: "分析每种方案的优缺点，帮助团队理性决策", type: "innovator" },
+                    { text: "提出一个完全不同的创意，尝试新方法", type: "coordinator" }
+                ]
+            },
+            {
+                text: "小组任务即将截止但进度落后，你的第一反应是？",
+                options: [
+                    { text: "迅速分配剩余任务，明确每个人的责任", type: "leader" },
+                    { text: "默默承担更多工作，确保细节不出错", type: "executor" },
+                    { text: "提出优化流程的建议，缩短时间", type: "innovator" },
+                    { text: "鼓励大家保持冷静，协调分工", type: "coordinator" }
+                ]
+            },
+            {
+                text: "在团队讨论中，你更倾向于扮演什么角色？",
+                options: [
+                    { text: "引导话题方向，确保讨论高效进行", type: "leader" },
+                    { text: "记录讨论内容，整理成行动计划", type: "executor" },
+                    { text: "不断提出新点子，挑战现有思路", type: "innovator" },
+                    { text: "关注成员情绪，调和不同观点", type: "coordinator" }
+                ]
+            },
+            {
+                text: "小组需要确定最终方案时，你的做法是？",
+                options: [
+                    { text: "果断拍板决定", type: "leader" },
+                    { text: "严格按照既定流程执行", type: "executor" },
+                    { text: "提出一个颠覆性方案", type: "innovator" },
+                    { text: "汇总所有人意见后折中", type: "coordinator" }
+                ]
+            },
+            {
+                text: "你更享受哪种类型的工作？",
+                options: [
+                    { text: "制定计划并监督执行", type: "leader" },
+                    { text: "按部就班完成具体任务", type: "executor" },
+                    { text: "探索未知领域并提出创意", type: "innovator" },
+                    { text: "促进团队和谐与沟通", type: "coordinator" }
+                ]
+            },
+            {
+                text: "当需要做决策时，你更依赖？",
+                options: [
+                    { text: "自己的经验和直觉", type: "leader" },
+                    { text: "已有的规则或流程", type: "executor" },
+                    { text: "创新性的可能性", type: "innovator" },
+                    { text: "团队成员的意见平衡", type: "coordinator" }
+                ]
+            },
+            {
+                text: "面对突发问题，你的第一反应是？",
+                options: [
+                    { text: "立即指挥团队应对", type: "leader" },
+                    { text: "专注解决自己能处理的部分", type: "executor" },
+                    { text: "思考是否有更巧妙的解决方法", type: "innovator" },
+                    { text: "确保所有人理解问题并协作解决", type: "coordinator" }
+                ]
+            },
+            {
+                text: "你的领导力如何？（1=弱，5=强）",
+                options: [
+                    { text: "1", type: "leader", score: 1 },
+                    { text: "2", type: "leader", score: 2 },
+                    { text: "3", type: "leader", score: 3 },
+                    { text: "4", type: "leader", score: 4 },
+                    { text: "5", type: "leader", score: 5 }
+                ]
+            },
+            {
+                text: "你的执行力如何？（1=拖延，5=高效）",
+                options: [
+                    { text: "1", type: "executor", score: 1 },
+                    { text: "2", type: "executor", score: 2 },
+                    { text: "3", type: "executor", score: 3 },
+                    { text: "4", type: "executor", score: 4 },
+                    { text: "5", type: "executor", score: 5 }
+                ]
+            },
+            {
+                text: "你的创造力如何？（1=保守，5=活跃）",
+                options: [
+                    { text: "1", type: "innovator", score: 1 },
+                    { text: "2", type: "innovator", score: 2 },
+                    { text: "3", type: "innovator", score: 3 },
+                    { text: "4", type: "innovator", score: 4 },
+                    { text: "5", type: "innovator", score: 5 }
+                ]
+            }
+        ];
+
+        // 角色数据库
+        const roleData = {
+            leader: {
+                title: "🏆 领导者",
+                desc: "你具有清晰的愿景和决策力，善于统筹全局",
+                advice: "适合担任小组负责人，但需注意倾听他人意见",
+                radar: { leadership: 5, execution: 3, creativity: 2, coordination: 4 },
+                idealTeam: ["executor", "coordinator"]
+            },
+            executor: {
+                title: "🔧 执行者",
+                desc: "你细致可靠，能高效完成具体任务",
+                advice: "适合负责落地环节，避免过度追求完美",
+                radar: { leadership: 2, execution: 5, creativity: 3, coordination: 3 },
+                idealTeam: ["leader", "innovator"]
+            },
+            innovator: {
+                title: "💡 创新者",
+                desc: "你思维活跃，擅长提出突破性方案",
+                advice: "适合承担创意工作，但需注意可行性",
+                radar: { leadership: 3, execution: 2, creativity: 5, coordination: 3 },
+                idealTeam: ["executor", "coordinator"]
+            },
+            coordinator: {
+                title: "🤝 协调者",
+                desc: "你善于沟通，能维系团队和谐运作",
+                advice: "适合化解冲突，促进信息共享",
+                radar: { leadership: 4, execution: 3, creativity: 4, coordination: 5 },
+                idealTeam: ["leader", "executor"]
+            }
+        };
+
+        // 初始化变量
+        let scores = { leader: 0, executor: 0, innovator: 0, coordinator: 0 };
+
+        // 初始化题目
+        function initQuiz() {
+            let html = '';
+            questions.forEach((q, index) => {
+                html += `<div class="question-card">
+                    <h3>Q${index + 1}: ${q.text}</h3>
+                    ${q.options.map(opt => `
+                        <div class="option" onclick="selectOption(this, '${opt.type}', ${opt.score || 0})">
+                            ${opt.text}
+                        </div>`).join('')}
+                </div>`;
+            });
+            document.getElementById('quiz').innerHTML = html;
+        }
+
+        // 选择答案
+        function selectOption(element, type, score = 4) {
+            Array.from(element.parentNode.children).forEach(child => {
+                child.style.background = 'white';
+            });
+            element.style.background = '#e3f2fd';
+            scores[type] += score;
+        }
+
+        // 显示结果
+        function showResult() {
+            // 计算最高分
+            const maxScore = Math.max(...Object.values(scores));
+            const resultType = Object.keys(scores).find(k => scores[k] === maxScore);
+            const role = roleData[resultType];
+
+            // 显示结果页面
+            document.getElementById('quiz').style.display = 'none';
+            document.getElementById('result').style.display = 'block';
+            
+            // 生成结果内容
+            const resultHTML = `
+                <h2>${role.title}</h2>
+                <p>${role.desc}</p>
+                <div class="radar-container">
+                    <canvas id="radarChart"></canvas>
+                </div>
+                <h4>✏️ 发展建议：</h4>
+                <p>${role.advice}</p>
+                <h4>🤝 理想队友：</h4>
+                <p>${role.idealTeam.map(t => roleData[t].title).join(' + ')}</p>
+                <button onclick="location.reload()">重新测试</button>
+            `;
+            document.getElementById('result').innerHTML = resultHTML;
+
+            // 渲染雷达图
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ["领导力", "执行力", "创造力", "协调力"],
+                    datasets: [{
+                        data: Object.values(role.radar),
+                        backgroundColor: 'rgba(74, 144, 226, 0.2)',
+                        borderColor: '#4a90e2',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 5,
+                            ticks: { stepSize: 1 },
+                            pointLabels: { font: { size: 14 } }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // 启动初始化
+        initQuiz();
+    </script>
+</body>
+</html>
